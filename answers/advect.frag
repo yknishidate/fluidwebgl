@@ -6,7 +6,6 @@ uniform float scale;
 uniform vec2 px1;
 varying vec2 uv;
 
-// output: velocity 1
 void main(){
     gl_FragColor = texture2D(source, uv-texture2D(velocity, uv).xy*dt*px1)*scale;
 }

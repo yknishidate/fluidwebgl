@@ -6,6 +6,7 @@ uniform float beta;
 uniform vec2 px;
 varying vec2 uv;
 
+// output: pressure 1
 void main(){
     float x0 = texture2D(pressure, uv-vec2(px.x, 0)).r;
     float x1 = texture2D(pressure, uv+vec2(px.x, 0)).r;

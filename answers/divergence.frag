@@ -4,7 +4,6 @@ uniform float dt;
 uniform vec2 px;
 varying vec2 uv;
 
-// output: divergence
 void main(){
     float x0 = texture2D(velocity, uv-vec2(px.x, 0)).x;
     float x1 = texture2D(velocity, uv+vec2(px.x, 0)).x;

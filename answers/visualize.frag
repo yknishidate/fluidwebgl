@@ -3,7 +3,6 @@ uniform sampler2D velocity;
 uniform sampler2D pressure;
 varying vec2 uv;
 
-// output: screen image
 void main(){
     gl_FragColor = vec4(
         (texture2D(pressure, uv)).x,
