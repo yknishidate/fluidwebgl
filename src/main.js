@@ -31,11 +31,8 @@ define(function (require, exports, module) {
       fail
     ),
     options = {
-      iterations: 32,
-      mouse_force: 1,
-      resolution: 0.5,
-      cursor_size: 100,
-      step: 1 / 60,
+      iterations: 16,
+      cursor_size: 200,
     },
     gui = new dat.GUI(),
     clock = new Clock(canvas),
@@ -65,8 +62,8 @@ define(function (require, exports, module) {
       debounce(
         (onresize = function () {
           var rect = canvas.getBoundingClientRect(),
-            width = rect.width * options.resolution,
-            height = rect.height * options.resolution;
+            width = rect.width,
+            height = rect.height;
           input.updateOffset();
           setup(width, height, format);
         }),
@@ -74,25 +71,7 @@ define(function (require, exports, module) {
       )
     );
     gui.add(options, "iterations", 2, 128).step(2);
-    gui.add(options, "mouse_force", 1, 100).step(1);
-    gui.add(options, "cursor_size", 8, 1000).step(1).onFinishChange(onresize);
-    gui
-      .add(options, "resolution", {
-        quarter: 0.25,
-        half: 0.5,
-        full: 1.0,
-        double: 2.0,
-        quadruple: 4.0,
-      })
-      .onFinishChange(onresize);
-    gui.add(options, "step", {
-      "1/1024": 1 / 1024,
-      "1/240": 1 / 240,
-      "1/120": 1 / 120,
-      "1/60": 1 / 60,
-      "1/30": 1 / 30,
-      "1/10": 1 / 10,
-    });
+    gui.add(options, "cursor_size", 50, 400).step(10).onFinishChange(onresize);
     gui.close();
     onresize();
     clock.start();
@@ -104,9 +83,9 @@ define(function (require, exports, module) {
     gl.viewport(0, 0, width, height);
     gl.lineWidth(1.0);
 
-    var px_x = 1.0 / canvas.width,
-      px_y = 1.0 / canvas.height,
-      px = vec2.create([px_x, px_y]);
+    var px_x = 1.0 / canvas.width;
+    var px_y = 1.0 / canvas.height;
+    var px = vec2.create([px_x, px_y]);
     (px1 = vec2.create([1, canvas.width / canvas.height])),
       (inside = new Mesh(gl, {
         vertex: geometry.screen_quad(1.0 - px_x * 2.0, 1.0 - px_y * 2.0),
@@ -152,7 +131,7 @@ define(function (require, exports, module) {
           scale: 1.0,
           velocity: velocityFBO0,
           source: velocityFBO0,
-          dt: options.step,
+          dt: 0.1,
         },
         output: velocityFBO1,
       })),
@@ -227,29 +206,25 @@ define(function (require, exports, module) {
         output: null,
       }));
 
-    var x0 = input.mouse.x,
-      y0 = input.mouse.y;
+    var x_prev = input.mouse.x;
+    var y_prev = input.mouse.y;
 
     clock.ontick = function (dt) {
-      var x1 = input.mouse.x * options.resolution,
-        y1 = input.mouse.y * options.resolution,
-        xd = x1 - x0,
-        yd = y1 - y0;
+      var x_curr = input.mouse.x;
+      var y_curr = input.mouse.y;
+      var dx = x_curr - x_prev;
+      var dy = y_curr - y_prev;
 
-      (x0 = x1), (y0 = y1);
-      if (x0 === 0 && y0 === 0) xd = yd = 0;
-      advectVelocityKernel.uniforms.dt = options.step * 1.0;
+      // save the previous mouse position
+      (x_prev = x_curr), (y_prev = y_curr);
+
+      if (x_prev === 0 && y_prev === 0) dx = dy = 0;
+      advectVelocityKernel.uniforms.dt = dt;
       advectVelocityKernel.run();
 
+      vec2.set([dx * 0.1, -dy * 0.1], addForceKernel.uniforms.force);
       vec2.set(
-        [
-          xd * px_x * options.cursor_size * options.mouse_force,
-          -yd * px_y * options.cursor_size * options.mouse_force,
-        ],
-        addForceKernel.uniforms.force
-      );
-      vec2.set(
-        [x0 * px_x * 2 - 1.0, (y0 * px_y * 2 - 1.0) * -1],
+        [x_prev * px_x * 2 - 1.0, (y_prev * px_y * 2 - 1.0) * -1],
         addForceKernel.uniforms.center
       );
       addForceKernel.run();
