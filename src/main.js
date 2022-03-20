@@ -213,27 +213,32 @@ define(function (require, exports, module) {
       var x_curr = input.mouse.x;
       var y_curr = input.mouse.y;
       var dx = x_curr - x_prev;
-      var dy = y_curr - y_prev;
-
-      // save the previous mouse position
+      var dy = -(y_curr - y_prev);
       (x_prev = x_curr), (y_prev = y_curr);
 
-      if (x_prev === 0 && y_prev === 0) dx = dy = 0;
+      // 1. advection
       advectVelocityKernel.uniforms.dt = dt;
       advectVelocityKernel.run();
 
-      vec2.set([dx * 0.1, -dy * 0.1], addForceKernel.uniforms.force);
+      // 2. force
+      // TODO: calc force
+      // var force = ...;
+      var force = [dx * 0.1, dy * 0.1];
+
+      vec2.set(force, addForceKernel.uniforms.force);
       vec2.set(
         [x_prev * px_x * 2 - 1.0, (y_prev * px_y * 2 - 1.0) * -1],
         addForceKernel.uniforms.center
       );
       addForceKernel.run();
 
+      // 3. divergence
       divergenceKernel.run();
 
-      var p0 = pressureFBO0,
-        p1 = pressureFBO1,
-        p_ = p0;
+      // 4. pressure
+      var p0 = pressureFBO0;
+      var p1 = pressureFBO1;
+      var p_ = p0;
       for (var i = 0; i < options.iterations; i++) {
         jacobiKernel.uniforms.pressure = p0;
         jacobiKernel.outputFBO = p1;
