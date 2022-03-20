@@ -15,4 +15,5 @@ void main(){
     float y1 = texture2D(pressure, uv+vec2(0, px.y)).r;
     vec2 v = texture2D(velocity, uv).xy;
     gl_FragColor = vec4((v-(vec2(x1, y1)-vec2(x0, y0))*0.5)*scale, 1.0, 1.0);
+    // gl_FragColor = vec4(v, 1.0, 1.0);
 }

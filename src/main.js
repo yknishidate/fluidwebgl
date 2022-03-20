@@ -24,7 +24,6 @@ define(function (require, exports, module) {
           depth: false,
         },
         debug: false,
-        //log_all: true,
         extensions: {
           texture_float: true,
         },
@@ -68,11 +67,8 @@ define(function (require, exports, module) {
           var rect = canvas.getBoundingClientRect(),
             width = rect.width * options.resolution,
             height = rect.height * options.resolution;
-          //console.log(rect.width, rect.height);
-          //if(rect.width != canvas.width || rect.height != canvas.height){
           input.updateOffset();
           setup(width, height, format);
-          //}
         }),
         250
       )
@@ -124,66 +120,6 @@ define(function (require, exports, module) {
           position: {},
         },
       })),
-      (boundary = new Mesh(gl, {
-        mode: gl.LINES,
-        vertex: new Float32Array([
-          // bottom
-          -1 + px_x * 0.0,
-          -1 + px_y * 0.0,
-          -1 + px_x * 0.0,
-          -1 + px_y * 2.0,
-
-          1 - px_x * 0.0,
-          -1 + px_y * 0.0,
-          1 - px_x * 0.0,
-          -1 + px_y * 2.0,
-
-          // top
-          -1 + px_x * 0.0,
-          1 - px_y * 0.0,
-          -1 + px_x * 0.0,
-          1 - px_y * 2.0,
-
-          1 - px_x * 0.0,
-          1 - px_y * 0.0,
-          1 - px_x * 0.0,
-          1 - px_y * 2.0,
-
-          // left
-          -1 + px_x * 0.0,
-          1 - px_y * 0.0,
-          -1 + px_x * 2.0,
-          1 - px_y * 0.0,
-
-          -1 + px_x * 0.0,
-          -1 + px_y * 0.0,
-          -1 + px_x * 2.0,
-          -1 + px_y * 0.0,
-
-          // right
-          1 - px_x * 0.0,
-          1 - px_y * 0.0,
-          1 - px_x * 2.0,
-          1 - px_y * 0.0,
-
-          1 - px_x * 0.0,
-          -1 + px_y * 0.0,
-          1 - px_x * 2.0,
-          -1 + px_y * 0.0,
-        ]),
-        attributes: {
-          position: {
-            size: 2,
-            stride: 16,
-            offset: 0,
-          },
-          offset: {
-            size: 2,
-            stride: 16,
-            offset: 8,
-          },
-        },
-      })),
       (velocityFBO0 = new FBO(gl, width, height, gl.FLOAT)),
       (velocityFBO1 = new FBO(gl, width, height, gl.FLOAT)),
       (divergenceFBO = new FBO(
@@ -217,18 +153,6 @@ define(function (require, exports, module) {
           velocity: velocityFBO0,
           source: velocityFBO0,
           dt: options.step,
-        },
-        output: velocityFBO1,
-      })),
-      (velocityBoundaryKernel = new ComputeKernel(gl, {
-        shader: shaders.get("boundary", "advect"),
-        mesh: boundary,
-        uniforms: {
-          px: px,
-          scale: -1.0,
-          velocity: velocityFBO0,
-          source: velocityFBO0,
-          dt: 1 / 60,
         },
         output: velocityFBO1,
       })),
@@ -281,36 +205,11 @@ define(function (require, exports, module) {
         },
         output: pressureFBO1,
       })),
-      (pressureBoundaryKernel = new ComputeKernel(gl, {
-        shader: shaders.get("boundary", "jacobi"),
-        mesh: boundary,
-        nounbind: true,
-        nobind: true,
-        uniforms: {
-          pressure: pressureFBO0,
-          divergence: divergenceFBO,
-          alpha: -1.0,
-          beta: 0.25,
-          px: px,
-        },
-        output: pressureFBO1,
-      })),
       (subtractPressureGradientKernel = new ComputeKernel(gl, {
         shader: shaders.get("kernel", "subtractPressureGradient"),
         mesh: all,
         uniforms: {
           scale: 1.0,
-          pressure: pressureFBO0,
-          velocity: velocityFBO1,
-          px: px,
-        },
-        output: velocityFBO0,
-      })),
-      (subtractPressureGradientBoundaryKernel = new ComputeKernel(gl, {
-        shader: shaders.get("boundary", "subtractPressureGradient"),
-        mesh: boundary,
-        uniforms: {
-          scale: -1.0,
           pressure: pressureFBO0,
           velocity: velocityFBO1,
           px: px,
@@ -355,26 +254,21 @@ define(function (require, exports, module) {
       );
       addForceKernel.run();
 
-      //   velocityBoundaryKernel.run();
-
       divergenceKernel.run();
 
       var p0 = pressureFBO0,
         p1 = pressureFBO1,
         p_ = p0;
       for (var i = 0; i < options.iterations; i++) {
-        jacobiKernel.uniforms.pressure =
-          pressureBoundaryKernel.uniforms.pressure = p0;
-        jacobiKernel.outputFBO = pressureBoundaryKernel.outputFBO = p1;
+        jacobiKernel.uniforms.pressure = p0;
+        jacobiKernel.outputFBO = p1;
         jacobiKernel.run();
-        // pressureBoundaryKernel.run();
         p_ = p0;
         p0 = p1;
         p1 = p_;
       }
 
       subtractPressureGradientKernel.run();
-      //   subtractPressureGradientBoundaryKernel.run();
 
       drawKernel.run();
     };
@@ -390,7 +284,6 @@ define(function (require, exports, module) {
         "shaders/subtractPressureGradient.frag",
         "shaders/visualize.frag",
         "shaders/cursor.vertex",
-        "shaders/boundary.vertex",
         "shaders/kernel.vertex",
       ],
       init
