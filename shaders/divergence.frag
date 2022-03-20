@@ -1,11 +1,13 @@
 precision highp float;
 uniform sampler2D velocity;
 uniform float dt;
-uniform vec2 px;
+uniform vec2 px; // vec2(1/width, 1/height)
 varying vec2 uv;
 
 // output: divergence
 void main(){
+    // gl_FragColor = vec4(0, 0, 0, 1);
+
     float x0 = texture2D(velocity, uv - vec2(px.x, 0)).x;
     float x1 = texture2D(velocity, uv + vec2(px.x, 0)).x;
     float y0 = texture2D(velocity, uv - vec2(0, px.y)).y;

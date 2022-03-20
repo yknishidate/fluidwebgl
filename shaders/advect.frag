@@ -1,14 +1,13 @@
 precision highp float;
-uniform sampler2D source;
 uniform sampler2D velocity;
 uniform float dt;
-uniform float scale;
-uniform vec2 px1;
+uniform vec2 aspect;
 varying vec2 uv;
 
-// output: velocity 1
+// output: velocity
 void main(){
+    // gl_FragColor = texture2D(velocity, uv);
     vec2 vel = texture2D(velocity, uv).xy;
-    vec2 offset = vel * dt * px1;
-    gl_FragColor = texture2D(source, uv - offset) * scale;
+    vec2 offset = vel * dt * aspect;
+    gl_FragColor = texture2D(velocity, uv - offset);
 }

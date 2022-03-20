@@ -86,7 +86,7 @@ define(function (require, exports, module) {
     var px_x = 1.0 / canvas.width;
     var px_y = 1.0 / canvas.height;
     var px = vec2.create([px_x, px_y]);
-    (px1 = vec2.create([1, canvas.width / canvas.height])),
+    (aspect = vec2.create([1, canvas.width / canvas.height])),
       (inside = new Mesh(gl, {
         vertex: geometry.screen_quad(1.0 - px_x * 2.0, 1.0 - px_y * 2.0),
         attributes: {
@@ -127,10 +127,8 @@ define(function (require, exports, module) {
         mesh: inside,
         uniforms: {
           px: px,
-          px1: px1,
-          scale: 1.0,
+          aspect: aspect,
           velocity: velocityFBO0,
-          source: velocityFBO0,
           dt: 0.1,
         },
         output: velocityFBO1,
@@ -150,9 +148,9 @@ define(function (require, exports, module) {
         blend: "add",
         uniforms: {
           px: px,
-          force: vec2.create([0.0, 0.0]),
-          center: vec2.create([0.0, 0.0]),
-          scale: vec2.create([
+          mouse_move: vec2.create([0.0, 0.0]),
+          mouse_pos: vec2.create([0.0, 0.0]),
+          cursor_size: vec2.create([
             options.cursor_size * px_x,
             options.cursor_size * px_y,
           ]),
@@ -188,7 +186,6 @@ define(function (require, exports, module) {
         shader: shaders.get("kernel", "subtractPressureGradient"),
         mesh: all,
         uniforms: {
-          scale: 1.0,
           pressure: pressureFBO0,
           velocity: velocityFBO1,
           px: px,
@@ -201,6 +198,7 @@ define(function (require, exports, module) {
         uniforms: {
           velocity: velocityFBO0,
           pressure: pressureFBO0,
+          divergence: divergenceFBO,
           px: px,
         },
         output: null,
@@ -217,18 +215,15 @@ define(function (require, exports, module) {
       (x_prev = x_curr), (y_prev = y_curr);
 
       // 1. advection
+      if (x_prev === 0 && y_prev === 0) dx = dy = 0;
       advectVelocityKernel.uniforms.dt = dt;
       advectVelocityKernel.run();
 
       // 2. force
-      // TODO: calc force
-      // var force = ...;
-      var force = [dx * 0.1, dy * 0.1];
-
-      vec2.set(force, addForceKernel.uniforms.force);
+      vec2.set([dx, dy], addForceKernel.uniforms.mouse_move);
       vec2.set(
         [x_prev * px_x * 2 - 1.0, (y_prev * px_y * 2 - 1.0) * -1],
-        addForceKernel.uniforms.center
+        addForceKernel.uniforms.mouse_pos
       );
       addForceKernel.run();
 
@@ -247,7 +242,6 @@ define(function (require, exports, module) {
         p0 = p1;
         p1 = p_;
       }
-
       subtractPressureGradientKernel.run();
 
       drawKernel.run();
