@@ -3,8 +3,7 @@ precision highp float;
 uniform vec2 mouse_move;
 uniform vec2 mouse_pos;
 uniform vec2 cursor_size;
-uniform vec2 px;
-varying vec2 uv;
+uniform vec2 resolution;
 
 // output: velocity
 void main(){
